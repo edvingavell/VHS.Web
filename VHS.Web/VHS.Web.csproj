@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>5afccf05-5d5a-4ab3-a826-038400f68a31</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\WeatherForecastController.cs" />
+    <Compile Remove="WeatherForecast.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VHS.Core\VHS.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="HiQ.NetStandard.Util.Data">
+      <HintPath>..\..\..\TrashVac_lecture\TrashVacBackEnd-master\Libs\HiQ.NetStandard.Util.Data.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
