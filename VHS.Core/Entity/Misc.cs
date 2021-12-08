@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace VHS.Core.Entity
 {
@@ -30,34 +31,29 @@ namespace VHS.Core.Entity
             return true;
         }
 
-        private static bool ControlTirePressure(double x)
+        public static bool CheckTirePressures(double tire1, double tire2, double tire3, double tire4)
         {
-            if (x < 0 || x > 10)
+            static bool ControlTirePressure(double x)
             {
-                return false;
+                var max_value_tirePressure = 10;
+                var min_value_tirePressure = 0;
+                if (x < min_value_tirePressure || x > max_value_tirePressure)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
             }
-            else
-            {
-                return true;
+
+            var result = true;
+
+            if (!ControlTirePressure(tire1) || !ControlTirePressure(tire2) || !ControlTirePressure(tire3) || !ControlTirePressure(tire4)) {
+                result = false;
             }
-        }
 
-        public static bool CheckTirePressures(string tire1, string tire2, string tire3, string tire4)
-        {
-            if (String.IsNullOrEmpty(tire1) || String.IsNullOrEmpty(tire2)
-                || String.IsNullOrEmpty(tire3) || String.IsNullOrEmpty(tire4)) { return false; }
-
-            if (tire1.Contains('.') || tire2.Contains('.') || tire3.Contains('.') || tire4.Contains('.')) { return false; }
-
-            double t1 = double.Parse(tire1);
-            double t2 = double.Parse(tire2);
-            double t3 = double.Parse(tire3);
-            double t4 = double.Parse(tire4);
-
-            if (!ControlTirePressure(t1) || !ControlTirePressure(t2) 
-                || !ControlTirePressure(t3) || !ControlTirePressure(t4)) { return false; }
-
-            return true;
+            return result;
         }
 
     }

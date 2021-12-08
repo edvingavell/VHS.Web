@@ -1,7 +1,10 @@
-﻿namespace VHS.Core
+﻿using System;
+
+namespace VHS.Core
 {
     public class Identity
     {
         public static string CdsToken { get; set; }
+        public static Guid CdsUserId { get; set; }
     }
 }

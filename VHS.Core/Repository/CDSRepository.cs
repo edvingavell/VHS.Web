@@ -13,7 +13,6 @@ namespace VHS.Core.Repository
 {
     public class CDSRepository
     {
-
         private readonly IRestClient _restClient;
 
         public CDSRepository()
@@ -21,7 +20,7 @@ namespace VHS.Core.Repository
             _restClient = new RestClient("https://kyhdev.hiqcloud.net");
         }
 
-        public LoginResponse GetAccessToken(string userName, string password)
+        public LoginResponse Authenticate(string userName, string password)
         {
             var accessToken = string.Empty;
 
