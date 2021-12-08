@@ -1,8 +1,6 @@
 ﻿using HiQ.NetStandard.Util.Data;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Data;
 using VHS.Core.Entity;
 
 namespace VHS.Core.Repository
@@ -17,7 +15,7 @@ namespace VHS.Core.Repository
             var parameters = new SqlParameters();
             parameters.AddVarChar("@RegistrationNumber", 50, regNo);
 
-            var dr = DbAccess.ExecuteReader("dbo.sStatus_GetByRegNo", ref parameters, CommandType.StoredProcedure);
+            var dr = DbAccess.ExecuteReader("dbo.sStatus_GetByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
 
             while (dr.Read())
             {
@@ -51,7 +49,7 @@ namespace VHS.Core.Repository
             var parameters = new SqlParameters();
             parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
 
-            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNo", ref parameters, CommandType.StoredProcedure);
+            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
 
             while (dr.Read())
             {

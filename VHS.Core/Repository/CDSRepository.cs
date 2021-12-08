@@ -1,9 +1,4 @@
-﻿using HiQ.NetStandard.Util.Data;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Data;
-using VHS.Core.Entity;
-using System.Net.Http;
+﻿using Newtonsoft.Json;
 using System;
 using RestSharp;
 using System.Web;
