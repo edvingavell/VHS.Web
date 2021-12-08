@@ -9,7 +9,6 @@ using VHS.Core;
 using VHS.Core.Repository;
 using VHS.Core.Entity.Dto;
 using VHS.Web.Attributes;
-using System.Globalization;
 
 namespace VHS.Web.Controllers
 {
@@ -54,39 +53,10 @@ namespace VHS.Web.Controllers
                 var tirePressures = new List<double>() { tireLF,
                     tireLB, tireRF, tireRB };
 
-                SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
+                Guid resultId = vehiclesRepository.PostStatus(regNumber, batteryStatus, tripMeter, lockStatus, alarmStatus, 
+                    tirePressures, positionLatitude, positionLongitude);
 
-                myConnection.Open();
-
-                SqlCommand cmd = new SqlCommand("dbo.sStatus_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-
-                cmd.Parameters.Add(new SqlParameter("@StatusId", SqlDbType.UniqueIdentifier)
-                    { Value = null, Direction = ParameterDirection.Output });
-                cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-                cmd.Parameters.Add(new SqlParameter("@BatteryStatus", SqlDbType.Int) { Value = batteryStatus });
-                cmd.Parameters.Add(new SqlParameter("@TripMeter", SqlDbType.Float) { Value = tripMeter });
-                cmd.Parameters.Add(new SqlParameter("@LockStatus", SqlDbType.Int) { Value = lockStatus });
-                cmd.Parameters.Add(new SqlParameter("@AlarmStatus", SqlDbType.Int) { Value = alarmStatus });
-                cmd.Parameters.Add(new SqlParameter("@TirePressures", SqlDbType.NVarChar, 50) { 
-                    Value = JsonConvert.SerializeObject(tirePressures) });
-                
-                cmd.ExecuteNonQuery();
-
-                var userId = new Guid(cmd.Parameters[0].Value.ToString());
-
-                SqlCommand cmd2 = new SqlCommand("dbo.sVehiclePosition_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-                cmd2.Parameters.Add(new SqlParameter("@VehiclePositionId", SqlDbType.UniqueIdentifier)
-                { Value = userId});
-                cmd2.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-                cmd2.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
-                cmd2.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
-                cmd2.Parameters.Add(new SqlParameter("@PositionRadius", SqlDbType.Float) { Value = 200 });
-
-                cmd2.ExecuteNonQuery();
-
-                myConnection.Close();
-
-                return new OkObjectResult(userId);
+                return new OkObjectResult(resultId);
             }
             else
             {
@@ -98,34 +68,7 @@ namespace VHS.Web.Controllers
         [Route("/Alarm")]
         public ActionResult<Guid> PostAlarm(string regNumber = "KKK111", double positionLatitude= 57.708870, double positionLongitude= 11.974560)
         {
-            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
-
-            myConnection.Open();
-
-            SqlCommand cmd = new SqlCommand("dbo.sAlarm_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-            cmd.Parameters.Add(new SqlParameter("@AlarmId", SqlDbType.UniqueIdentifier)
-            { Value = null, Direction = ParameterDirection.Output });
-            cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-            cmd.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
-            cmd.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
-            cmd.ExecuteNonQuery();
-
-            var alarmId = new Guid(cmd.Parameters[0].Value.ToString());
-
-            SqlCommand cmd2 = new SqlCommand("dbo.sVehiclePosition_GetDistance", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-            cmd2.Parameters.Add(new SqlParameter("@VehiclePositionId", SqlDbType.UniqueIdentifier)
-            { Value = null, Direction = ParameterDirection.Output });
-            cmd2.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-            cmd2.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
-            cmd2.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
-            cmd2.ExecuteNonQuery();
-
-            Guid resultId = new Guid();
-            if (cmd2.Parameters.Count > 0 && !String.IsNullOrEmpty(cmd2.Parameters[0].Value.ToString())) {
-                resultId = new Guid(cmd2.Parameters[0].Value.ToString());
-            }
-            myConnection.Close();
-
+            Guid resultId = vehiclesRepository.PostAlarm(regNumber, positionLatitude, positionLongitude);
             if (resultId != Guid.Empty)
             {
                 return new OkObjectResult(resultId);
@@ -134,10 +77,8 @@ namespace VHS.Web.Controllers
             {
                 return new NotFoundResult();
             }
-
             // integration med CDS, skicka regNr till CDS och få tillbaka telefon nr som tillhör bilen. -- FINNS EJ I DAGSLÄGET
             // skicka sms till bilen
-            
         }
 
         [HttpGet]
@@ -191,24 +132,9 @@ namespace VHS.Web.Controllers
                 startTime1 = DateTime.Parse(startTime);
                 stopTime1 = DateTime.Parse(stopTime);
             }
-            double timeInHours = (stopTime1 - startTime1).TotalHours;
-            double averageSpeedInKilometersPerHour = distanceInKilometers / timeInHours;
-            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
-            myConnection.Open();
-            SqlCommand cmd = new SqlCommand("dbo.sDrivingJournal_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-            cmd.Parameters.Add(new SqlParameter("@DrivingJournalId", SqlDbType.UniqueIdentifier)
-            { Value = null, Direction = ParameterDirection.Output });
-            cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-            cmd.Parameters.Add(new SqlParameter("@StartTime", SqlDbType.DateTime) { Value = startTime1 });
-            cmd.Parameters.Add(new SqlParameter("@StopTime", SqlDbType.DateTime) { Value = stopTime1 });
-            cmd.Parameters.Add(new SqlParameter("@DistanceInKm", SqlDbType.Float) { Value = distanceInKilometers });
-            cmd.Parameters.Add(new SqlParameter("@EnergyConsumptionInkWh", SqlDbType.Float) { Value = energyConsumptionInkWh });
-            cmd.Parameters.Add(new SqlParameter("@AverageConsumptionInkWhPer100km", SqlDbType.Float) { Value = averageConsumptionInkWhPer100km });
-            cmd.Parameters.Add(new SqlParameter("@AverageSpeedInKmPerHour", SqlDbType.Float) { Value = averageSpeedInKilometersPerHour });
-            cmd.Parameters.Add(new SqlParameter("@TypeOfTravel", SqlDbType.NVarChar, 50) { Value = typeOfTravel });
-            cmd.ExecuteNonQuery();
-            var drivingJournalId = new Guid(cmd.Parameters[0].Value.ToString());
-            myConnection.Close();
+
+            Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNumber, startTime1, stopTime1, distanceInKilometers, 
+                energyConsumptionInkWh, averageConsumptionInkWhPer100km, typeOfTravel);
 
             if (drivingJournalId != Guid.Empty)
             {
