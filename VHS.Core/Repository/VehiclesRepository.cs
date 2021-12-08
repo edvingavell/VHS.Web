@@ -14,12 +14,9 @@ namespace VHS.Core.Repository
         {
             IList<Status> userList = new List<Status>();
             SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
-
             var parameters = new SqlParameters();
             parameters.AddVarChar("@RegistrationNumber", 50, regNo);
-
             var dr = DbAccess.ExecuteReader("dbo.sStatus_GetByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
-
             while (dr.Read())
             {
                 userList.Add(new Status()
@@ -38,22 +35,47 @@ namespace VHS.Core.Repository
                     PositionRadius = !dr.IsDBNull(11) ? dr.GetDouble(11) : null
                 });
             }
-
             DbAccess.DisposeReader(ref dr);
-
             return userList;
+        }
+
+        public Guid PostStatus(string regNumber, int batteryStatus, double tripMeter, int lockStatus, int alarmStatus, List<double> tirePressures, double positionLatitude, double positionLongitude)
+        {
+            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
+            myConnection.Open();
+            SqlCommand cmd = new SqlCommand("dbo.sStatus_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
+            cmd.Parameters.Add(new SqlParameter("@StatusId", SqlDbType.UniqueIdentifier)
+            { Value = null, Direction = ParameterDirection.Output });
+            cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
+            cmd.Parameters.Add(new SqlParameter("@BatteryStatus", SqlDbType.Int) { Value = batteryStatus });
+            cmd.Parameters.Add(new SqlParameter("@TripMeter", SqlDbType.Float) { Value = tripMeter });
+            cmd.Parameters.Add(new SqlParameter("@LockStatus", SqlDbType.Int) { Value = lockStatus });
+            cmd.Parameters.Add(new SqlParameter("@AlarmStatus", SqlDbType.Int) { Value = alarmStatus });
+            cmd.Parameters.Add(new SqlParameter("@TirePressures", SqlDbType.NVarChar, 50)
+            {
+                Value = JsonConvert.SerializeObject(tirePressures)
+            });
+            cmd.ExecuteNonQuery();
+            var userId = new Guid(cmd.Parameters[0].Value.ToString());
+            SqlCommand cmd2 = new SqlCommand("dbo.sVehiclePosition_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
+            cmd2.Parameters.Add(new SqlParameter("@VehiclePositionId", SqlDbType.UniqueIdentifier)
+            { Value = userId });
+            cmd2.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
+            cmd2.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
+            cmd2.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
+            cmd2.Parameters.Add(new SqlParameter("@PositionRadius", SqlDbType.Float) { Value = 200 });
+            cmd2.ExecuteNonQuery();
+            myConnection.Close();
+            return userId;
         }
 
         public IList<DrivingJournal> GetDrivingJournal(string regNumber)
         {
             IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
             SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
-
             var parameters = new SqlParameters();
             parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
-
             var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
-
             while (dr.Read())
             {
                 drivingJournalList.Add(new DrivingJournal()
@@ -71,50 +93,15 @@ namespace VHS.Core.Repository
                     DateLastModified = dr.GetDateTime(10)
                 });
             }
-
             DbAccess.DisposeReader(ref dr);
-
             return drivingJournalList;
         }
 
-        public Guid PostStatus(string regNumber, int batteryStatus, double tripMeter, int lockStatus, int alarmStatus, List<double> tirePressures, double positionLatitude, double positionLongitude)
-        {
-            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
-
-            myConnection.Open();
-            SqlCommand cmd = new SqlCommand("dbo.sStatus_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-            cmd.Parameters.Add(new SqlParameter("@StatusId", SqlDbType.UniqueIdentifier)
-            { Value = null, Direction = ParameterDirection.Output });
-            cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-            cmd.Parameters.Add(new SqlParameter("@BatteryStatus", SqlDbType.Int) { Value = batteryStatus });
-            cmd.Parameters.Add(new SqlParameter("@TripMeter", SqlDbType.Float) { Value = tripMeter });
-            cmd.Parameters.Add(new SqlParameter("@LockStatus", SqlDbType.Int) { Value = lockStatus });
-            cmd.Parameters.Add(new SqlParameter("@AlarmStatus", SqlDbType.Int) { Value = alarmStatus });
-            cmd.Parameters.Add(new SqlParameter("@TirePressures", SqlDbType.NVarChar, 50)
-            {
-                Value = JsonConvert.SerializeObject(tirePressures)
-            });
-            cmd.ExecuteNonQuery();
-
-            var userId = new Guid(cmd.Parameters[0].Value.ToString());
-
-            SqlCommand cmd2 = new SqlCommand("dbo.sVehiclePosition_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
-            cmd2.Parameters.Add(new SqlParameter("@VehiclePositionId", SqlDbType.UniqueIdentifier)
-            { Value = userId });
-            cmd2.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
-            cmd2.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
-            cmd2.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
-            cmd2.Parameters.Add(new SqlParameter("@PositionRadius", SqlDbType.Float) { Value = 200 });
-            cmd2.ExecuteNonQuery();
-            myConnection.Close();
-            return userId;
-        }
-
-        public Guid PostDrivingJournal(string regNumber, DateTime startTime1, DateTime stopTime1, double distanceInKilometers, double energyConsumptionInkWh, double averageConsumptionInkWhPer100km, string typeOfTravel)
+        public Guid PostDrivingJournal(string regNumber, DateTime startTime1, DateTime stopTime1, double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel)
         {
             double timeInHours = (stopTime1 - startTime1).TotalHours;
             double averageSpeedInKilometersPerHour = distanceInKilometers / timeInHours;
-
+            double averageConsumptionInkWhPer100km = energyConsumptionInkWh / (distanceInKilometers / 100);
             SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
             myConnection.Open();
             SqlCommand cmd = new SqlCommand("dbo.sDrivingJournal_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
@@ -137,7 +124,6 @@ namespace VHS.Core.Repository
         public Guid PostAlarm(string regNumber, double positionLatitude, double positionLongitude)
         {
             SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
-
             myConnection.Open();
             SqlCommand cmd = new SqlCommand("dbo.sAlarm_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
             cmd.Parameters.Add(new SqlParameter("@AlarmId", SqlDbType.UniqueIdentifier)
@@ -146,7 +132,6 @@ namespace VHS.Core.Repository
             cmd.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
             cmd.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
             cmd.ExecuteNonQuery();
-
             SqlCommand cmd2 = new SqlCommand("dbo.sVehiclePosition_GetDistance", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
             cmd2.Parameters.Add(new SqlParameter("@VehiclePositionId", SqlDbType.UniqueIdentifier)
             { Value = null, Direction = ParameterDirection.Output });
@@ -154,7 +139,6 @@ namespace VHS.Core.Repository
             cmd2.Parameters.Add(new SqlParameter("@PositionLatitude", SqlDbType.Float) { Value = positionLatitude });
             cmd2.Parameters.Add(new SqlParameter("@PositionLongitude", SqlDbType.Float) { Value = positionLongitude });
             cmd2.ExecuteNonQuery();
-
             Guid resultId = new Guid();
             if (cmd2.Parameters.Count > 0 && !String.IsNullOrEmpty(cmd2.Parameters[0].Value.ToString()))
             {

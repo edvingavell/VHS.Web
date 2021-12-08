@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
 using VHS.Core.Entity;
 using Newtonsoft.Json;
 using VHS.Core;
@@ -52,10 +50,8 @@ namespace VHS.Web.Controllers
             {
                 var tirePressures = new List<double>() { tireLF,
                     tireLB, tireRF, tireRB };
-
                 Guid resultId = vehiclesRepository.PostStatus(regNumber, batteryStatus, tripMeter, lockStatus, alarmStatus, 
                     tirePressures, positionLatitude, positionLongitude);
-
                 return new OkObjectResult(resultId);
             }
             else
@@ -118,14 +114,14 @@ namespace VHS.Web.Controllers
         [HttpPost]
         [Route("/DrivingJournal")]
         public ActionResult<Guid> PostDrivingJournal(string regNumber, string startTime, string stopTime, 
-            double distanceInKilometers, double energyConsumptionInkWh, double averageConsumptionInkWhPer100km, string typeOfTravel)
+            double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel)
         {
             DateTime startTime1;
             DateTime stopTime1;
             if (String.IsNullOrEmpty(startTime) || String.IsNullOrEmpty(stopTime))
             {
                 startTime1 = DateTime.Now;
-                stopTime1 = DateTime.Now;
+                stopTime1 = DateTime.Now.AddHours(5);
             }
             else
             {
@@ -133,7 +129,7 @@ namespace VHS.Web.Controllers
                 stopTime1 = DateTime.Parse(stopTime);
             }
             Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNumber, startTime1, stopTime1, distanceInKilometers, 
-                energyConsumptionInkWh, averageConsumptionInkWhPer100km, typeOfTravel);
+                energyConsumptionInkWh, typeOfTravel);
             if (drivingJournalId != Guid.Empty)
             {
                 return new OkObjectResult(drivingJournalId);
@@ -149,14 +145,16 @@ namespace VHS.Web.Controllers
     [Route("api/CDS")]
     public class CDSController : ControllerBase
     {
+        #region Private
         private readonly CDSRepository cdsRepository;
+        #endregion
 
+        #region Public
         public CDSController()
         {
             cdsRepository = new CDSRepository();
         }
 
-        #region Public
         [HttpGet]
         [Route("/Auth")]
         public ActionResult<LoginResponse> Authenticate(string userName = "edgave", string password = "IoT20!!!")
