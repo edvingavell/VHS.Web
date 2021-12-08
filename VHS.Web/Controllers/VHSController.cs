@@ -132,10 +132,8 @@ namespace VHS.Web.Controllers
                 startTime1 = DateTime.Parse(startTime);
                 stopTime1 = DateTime.Parse(stopTime);
             }
-
             Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNumber, startTime1, stopTime1, distanceInKilometers, 
                 energyConsumptionInkWh, averageConsumptionInkWhPer100km, typeOfTravel);
-
             if (drivingJournalId != Guid.Empty)
             {
                 return new OkObjectResult(drivingJournalId);
@@ -164,7 +162,6 @@ namespace VHS.Web.Controllers
         public ActionResult<LoginResponse> Authenticate(string userName = "edgave", string password = "IoT20!!!")
         {
             var loginResponse = cdsRepository.Authenticate(userName, password);
-
             if (loginResponse != null)
             {
                 Identity.CdsToken = loginResponse.AccessToken;
