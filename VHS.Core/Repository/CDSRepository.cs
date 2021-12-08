@@ -3,6 +3,8 @@ using System;
 using RestSharp;
 using System.Web;
 using VHS.Core.Entity.Dto;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace VHS.Core.Repository
 {
@@ -52,7 +54,5 @@ namespace VHS.Core.Repository
             }
             return default(T);
         }
-
-        
     }
 }

@@ -43,14 +43,14 @@ namespace VHS.Web.Controllers
         [HttpPost]
         [Route("/Status")]
         public ActionResult<Guid> PostStatus(string regNumber, double positionLatitude, double positionLongitude, 
-            int batteryStatus, double tripMeter, int lockStatus, int alarmStatus, double tireLF, double tireLB, double tireRF, double tireRB)
+            int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, double tireLF, double tireLB, double tireRF, double tireRB)
         {
             bool correctTirePressures = Misc.CheckTirePressures(tireLF, tireLB, tireRF, tireRB);
             if (correctTirePressures)
             {
                 var tirePressures = new List<double>() { tireLF,
                     tireLB, tireRF, tireRB };
-                Guid resultId = vehiclesRepository.PostStatus(regNumber, batteryStatus, tripMeter, lockStatus, alarmStatus, 
+                Guid resultId = vehiclesRepository.PostStatus(regNumber, batteryStatus, tripMeter, engineRunning, lockStatus, alarmStatus, 
                     tirePressures, positionLatitude, positionLongitude);
                 return new OkObjectResult(resultId);
             }
@@ -64,6 +64,7 @@ namespace VHS.Web.Controllers
         [Route("/Alarm")]
         public ActionResult<Guid> PostAlarm(string regNumber = "KKK111", double positionLatitude= 57.708870, double positionLongitude= 11.974560)
         {
+            //Bilen postar upp sin status
             Guid resultId = vehiclesRepository.PostAlarm(regNumber, positionLatitude, positionLongitude);
             if (resultId != Guid.Empty)
             {
@@ -94,13 +95,63 @@ namespace VHS.Web.Controllers
             {
                 return new NotFoundResult();
             }
+
+            //För att kunna se fordonets position och söka efter resmål samt kunna
+            //skicka adresser till bilen för att sedan få möjlighet att använda denna
+            //data för bilens GPS/ Navigeringssystem
+
+        }
+
+        [HttpGet]
+        [Route("/Address")]
+        public ActionResult<Address> GetAddress(string regNumber, bool lastDestinationOnly = true)
+        {
+            IList<Address> list = new List<Address>();
+                list = vehiclesRepository.GetAddress(regNumber, lastDestinationOnly);
+            if (list.Count > 0)
+            {
+                return new OkObjectResult(list);
+            }
+            else
+            {
+                return new NotFoundResult();
+            }
+        }
+
+        [HttpPost]
+        [Route("/Address")]
+        public ActionResult<string> PostAddress(string regNumber, string destination)
+        {
+            Guid resultId = vehiclesRepository.PostAddress(regNumber, destination);
+            if (resultId != Guid.Empty)
+            {
+                return new OkObjectResult(resultId);
+            }
+            else
+            {
+                return new NotFoundResult();
+            }
         }
 
         [HttpGet]
         [Route("/DrivingJournal")]
-        public ActionResult<DrivingJournal> GetDrivingJournal(string regNumber)
+        public ActionResult<DrivingJournal> GetDrivingJournal(string regNumber, DateTime searchDate, DateTime startTime, DateTime endTime)
         {
-            var list = vehiclesRepository.GetDrivingJournal(regNumber);
+            IList<DrivingJournal> list = new List<DrivingJournal>();
+            if (searchDate.Year == 1 && startTime.Year == 1 && endTime.Year == 1)
+            {
+                list = vehiclesRepository.GetDrivingJournal(regNumber);
+            }
+            else if (searchDate.Year != 1)
+            {
+                list = vehiclesRepository.GetDrivingJournal(regNumber, searchDate);
+            }
+            else
+            {
+                list = vehiclesRepository.GetDrivingJournal(regNumber, startTime, endTime);
+            }
+
+            
             if (list.Count > 0)
             {
                 return new OkObjectResult(list);

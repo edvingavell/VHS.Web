@@ -25,21 +25,22 @@ namespace VHS.Core.Repository
                     RegistrationNumber = regNo,
                     BatteryStatus = dr.GetInt32(2),
                     TripMeter = (float)dr.GetDouble(3),
-                    LockStatus = dr.GetInt32(4),
-                    AlarmStatus = dr.GetInt32(5),
-                    DateOfCreation = dr.GetDateTime(6),
-                    DateLastModified = dr.GetDateTime(7),
-                    TirePressures = JsonConvert.DeserializeObject<List<double>>(dr.GetString(8)),
-                    PositionLatitude = !dr.IsDBNull(9) ? dr.GetDouble(9) : null,
-                    PositionLongitude = !dr.IsDBNull(10) ? dr.GetDouble(10) : null,
-                    PositionRadius = !dr.IsDBNull(11) ? dr.GetDouble(11) : null
+                    EngineRunning = dr.GetInt32(4),
+                    LockStatus = dr.GetInt32(5),
+                    AlarmStatus = dr.GetInt32(6),
+                    DateOfCreation = dr.GetDateTime(7),
+                    DateLastModified = dr.GetDateTime(8),
+                    TirePressures = JsonConvert.DeserializeObject<List<double>>(dr.GetString(9)),
+                    PositionLatitude = !dr.IsDBNull(9) ? dr.GetDouble(10) : null,
+                    PositionLongitude = !dr.IsDBNull(10) ? dr.GetDouble(11) : null,
+                    PositionRadius = !dr.IsDBNull(11) ? dr.GetDouble(12) : null
                 });
             }
             DbAccess.DisposeReader(ref dr);
             return userList;
         }
 
-        public Guid PostStatus(string regNumber, int batteryStatus, double tripMeter, int lockStatus, int alarmStatus, List<double> tirePressures, double positionLatitude, double positionLongitude)
+        public Guid PostStatus(string regNumber, int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, List<double> tirePressures, double positionLatitude, double positionLongitude)
         {
             SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
             myConnection.Open();
@@ -49,6 +50,7 @@ namespace VHS.Core.Repository
             cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
             cmd.Parameters.Add(new SqlParameter("@BatteryStatus", SqlDbType.Int) { Value = batteryStatus });
             cmd.Parameters.Add(new SqlParameter("@TripMeter", SqlDbType.Float) { Value = tripMeter });
+            cmd.Parameters.Add(new SqlParameter("@EngineRunning", SqlDbType.Int) { Value = engineRunning });
             cmd.Parameters.Add(new SqlParameter("@LockStatus", SqlDbType.Int) { Value = lockStatus });
             cmd.Parameters.Add(new SqlParameter("@AlarmStatus", SqlDbType.Int) { Value = alarmStatus });
             cmd.Parameters.Add(new SqlParameter("@TirePressures", SqlDbType.NVarChar, 50)
@@ -69,6 +71,50 @@ namespace VHS.Core.Repository
             return userId;
         }
 
+        public IList<Address> GetAddress(string regNumber, bool lastDestinationOnly)
+        {
+            IList<Address> addressList = new List<Address>();
+            SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
+            var parameters = new SqlParameters();
+            parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
+            SqlDataReader dr;
+            if (lastDestinationOnly)
+            {
+                dr = DbAccess.ExecuteReader("dbo.sAddress_GetLastByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
+            }
+            else
+            {
+                dr = DbAccess.ExecuteReader("dbo.sAddress_GetAllByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
+            }
+            while (dr.Read())
+            {
+                addressList.Add(new Address()
+                {
+                    AddressId = dr.GetGuid(0),
+                    RegistrationNumber = dr.GetString(1),
+                    Destination = dr.GetString(2),
+                    DateOfCreation = dr.GetDateTime(3)
+                });
+            }
+            DbAccess.DisposeReader(ref dr);
+            return addressList;
+        }
+
+        public Guid PostAddress(string regNumber, string destination)
+        {
+            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
+            myConnection.Open();
+            SqlCommand cmd = new SqlCommand("dbo.sAddress_Post", myConnection) { CommandType = System.Data.CommandType.StoredProcedure };
+            cmd.Parameters.Add(new SqlParameter("@AddressId", SqlDbType.UniqueIdentifier)
+            { Value = null, Direction = ParameterDirection.Output });
+            cmd.Parameters.Add(new SqlParameter("@RegistrationNumber", SqlDbType.NVarChar, 50) { Value = regNumber });
+            cmd.Parameters.Add(new SqlParameter("@Destination", SqlDbType.NVarChar, 255) { Value = destination });
+            cmd.ExecuteNonQuery();
+            var addressId = new Guid(cmd.Parameters[0].Value.ToString());
+            myConnection.Close();
+            return addressId;
+        }
+
         public IList<DrivingJournal> GetDrivingJournal(string regNumber)
         {
             IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
@@ -76,6 +122,68 @@ namespace VHS.Core.Repository
             var parameters = new SqlParameters();
             parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
             var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNo", ref parameters, System.Data.CommandType.StoredProcedure);
+            while (dr.Read())
+            {
+                drivingJournalList.Add(new DrivingJournal()
+                {
+                    DrivingJournalId = dr.GetGuid(0),
+                    RegistrationNumber = dr.GetString(1),
+                    StartTime = dr.GetDateTime(2),
+                    StopTime = dr.GetDateTime(3),
+                    DistanceInKm = dr.GetDouble(4),
+                    EnergyConsumptionInkWh = dr.GetDouble(5),
+                    AverageConsumptionInkWhPer100km = dr.GetDouble(6),
+                    AverageSpeedInKmPerHour = dr.GetDouble(7),
+                    TypeOfTravel = dr.GetString(8),
+                    DateOfCreation = dr.GetDateTime(9),
+                    DateLastModified = dr.GetDateTime(10)
+                });
+            }
+            DbAccess.DisposeReader(ref dr);
+            return drivingJournalList;
+        }
+
+        public IList<DrivingJournal> GetDrivingJournal(string regNumber, DateTime searchDate)
+        {
+            IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
+            SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
+            var parameters = new SqlParameters();
+            parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
+            parameters.AddDateTime("SearchDate", searchDate);
+            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNoAndDate", ref parameters, System.Data.CommandType.StoredProcedure);
+            while (dr.Read())
+            {
+                drivingJournalList.Add(new DrivingJournal()
+                {
+                    DrivingJournalId = dr.GetGuid(0),
+                    RegistrationNumber = dr.GetString(1),
+                    StartTime = dr.GetDateTime(2),
+                    StopTime = dr.GetDateTime(3),
+                    DistanceInKm = dr.GetDouble(4),
+                    EnergyConsumptionInkWh = dr.GetDouble(5),
+                    AverageConsumptionInkWhPer100km = dr.GetDouble(6),
+                    AverageSpeedInKmPerHour = dr.GetDouble(7),
+                    TypeOfTravel = dr.GetString(8),
+                    DateOfCreation = dr.GetDateTime(9),
+                    DateLastModified = dr.GetDateTime(10)
+                });
+            }
+            DbAccess.DisposeReader(ref dr);
+            return drivingJournalList;
+        }
+
+        public IList<DrivingJournal> GetDrivingJournal(string regNumber, DateTime startDate, DateTime endDate)
+        {
+            var start = new DateTime(startDate.Year, startDate.Month, startDate.Day, 0, 0, 0);
+            var end = new DateTime(endDate.Year, endDate.Month, endDate.Day, 23, 59, 59);
+
+            IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
+            SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
+            var parameters = new SqlParameters();
+            parameters.AddVarChar("@RegistrationNumber", 50, regNumber);
+            parameters.AddDateTime("@Start", start);
+            parameters.AddDateTime("@End", end);
+            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByRegNoAndBetweenDates", ref parameters, System.Data.CommandType.StoredProcedure);
             while (dr.Read())
             {
                 drivingJournalList.Add(new DrivingJournal()
