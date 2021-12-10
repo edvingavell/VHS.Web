@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System;
 using VHS.Web.Filters;
 
 namespace VHS.Web.Attributes
@@ -8,7 +7,6 @@ namespace VHS.Web.Attributes
     {
         public VHSAuthorizeAttribute() : base(typeof(ClaimRequirementFilter))
         {
-
         }
     }
 }

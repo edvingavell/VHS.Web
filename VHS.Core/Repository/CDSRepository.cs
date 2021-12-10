@@ -34,7 +34,7 @@ namespace VHS.Core.Repository
             return response;
         }
 
-        public bool ValidateOwnerOfCar(string regNo, Guid customerId)
+        public bool ValidateOwnerOfCar(Guid customerId, string regNo)
         {
             var customer = GetCustomer(customerId);
 
