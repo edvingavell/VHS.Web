@@ -24,7 +24,6 @@ namespace VHS.Web.Controllers
         public VHSController()
         {
             vehiclesRepository = new VehiclesRepository();
-            cdsRepository = new CDSRepository();
         }
 
         [VHSOwnership]
