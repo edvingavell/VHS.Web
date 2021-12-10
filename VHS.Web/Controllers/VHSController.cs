@@ -17,83 +17,119 @@ namespace VHS.Web.Controllers
     {
         #region Private
         private readonly VehiclesRepository vehiclesRepository;
+        private readonly CDSRepository cdsRepository;
         #endregion
 
         #region Public
         public VHSController()
         {
             vehiclesRepository = new VehiclesRepository();
+            cdsRepository = new CDSRepository();
         }
 
         [HttpGet]
         [Route("/Status/{regNo}")]
         public ActionResult<IList<Status>> GetStatus(string regNo)
         {
-            var userList = vehiclesRepository.GetStatus(regNo);
-            if (userList.Count != 0)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                return new OkObjectResult(userList);
+
+                var userList = vehiclesRepository.GetStatus(regNo);
+
+                if (userList.Count != 0)
+                {
+                    return new OkObjectResult(userList);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
         }
 
         [HttpPost]
-        [Route("/Status")]
-        public ActionResult<Guid> PostStatus(string regNumber, double positionLatitude, double positionLongitude, 
-            int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, double tireLF, double tireLB, double tireRF, double tireRB)
+        [Route("/Status/{regNo}")]
+        public ActionResult<Guid> PostStatus(string regNo, double positionLatitude, double positionLongitude,
+            int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, 
+            double tireLF, double tireLB, double tireRF, double tireRB)
         {
-            bool correctTirePressures = Misc.CheckTirePressures(tireLF, tireLB, tireRF, tireRB);
-            if (correctTirePressures)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                var tirePressures = new List<double>() { tireLF,
+                bool correctTirePressures = Misc.CheckTirePressures(tireLF, tireLB, tireRF, tireRB);
+                if (correctTirePressures)
+                {
+                    var tirePressures = new List<double>() { tireLF,
                     tireLB, tireRF, tireRB };
-                Guid resultId = vehiclesRepository.PostStatus(regNumber, batteryStatus, tripMeter, engineRunning, lockStatus, alarmStatus, 
-                    tirePressures, positionLatitude, positionLongitude);
-                return new OkObjectResult(resultId);
+                    Guid resultId = vehiclesRepository.PostStatus(regNo, batteryStatus, tripMeter, engineRunning, lockStatus, alarmStatus,
+                        tirePressures, positionLatitude, positionLongitude);
+                    return new OkObjectResult(resultId);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
         }
 
         [HttpPost]
-        [Route("/Alarm")]
-        public ActionResult<Guid> PostAlarm(string regNumber = "KKK111", double positionLatitude= 57.708870, double positionLongitude= 11.974560)
+        [Route("/Alarm/{regNo}")]
+        public ActionResult<Guid> PostAlarm(string regNo, double positionLatitude, double positionLongitude)
         {
-            //Bilen postar upp sin status
-            Guid resultId = vehiclesRepository.PostAlarm(regNumber, positionLatitude, positionLongitude);
-            if (resultId != Guid.Empty)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                return new OkObjectResult(resultId);
+                //Bilen postar upp sin status
+                Guid resultId = vehiclesRepository.PostAlarm(regNo, positionLatitude, positionLongitude);
+                if (resultId != Guid.Empty)
+                {
+                    return new OkObjectResult(resultId);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
+                // integration med CDS, skicka regNr till CDS och få tillbaka telefon nr som tillhör bilen. -- FINNS EJ I DAGSLÄGET
+                // skicka sms till bilen
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
-            // integration med CDS, skicka regNr till CDS och få tillbaka telefon nr som tillhör bilen. -- FINNS EJ I DAGSLÄGET
-            // skicka sms till bilen
         }
 
         [HttpGet]
-        [Route("/Position")]
-        public ActionResult<string> GetPosition(string regNumber)
+        [Route("/Position/{regNo}")]
+        public ActionResult<string> GetPosition(string regNo)
         {
-            //skickar sms till bilen
-            //bilen postar upp sin status (position)
-            var list = vehiclesRepository.GetStatus(regNumber);
-            if (list.Count > 0 && list[0].PositionLatitude != null && list[0].PositionLongitude != null)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                var position = new List<double>() { list[0].PositionLatitude.Value,
-                   list[0].PositionLongitude.Value };
-                return new OkObjectResult(JsonConvert.SerializeObject(position));
+
+                //skickar sms till bilen
+                //bilen postar upp sin status (position)
+                var list = vehiclesRepository.GetStatus(regNo);
+                if (list.Count > 0 && list[0].PositionLatitude != null && list[0].PositionLongitude != null)
+                {
+                    var position = new List<double>() { list[0].PositionLatitude.Value,
+                    list[0].PositionLongitude.Value };
+
+                    return new OkObjectResult(JsonConvert.SerializeObject(position));
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
+
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
 
             //För att kunna se fordonets position och söka efter resmål samt kunna
@@ -103,118 +139,164 @@ namespace VHS.Web.Controllers
         }
 
         [HttpGet]
-        [Route("/Address")]
-        public ActionResult<Address> GetAddress(string regNumber, bool lastDestinationOnly = true)
+        [Route("/Address/{regNo}")]
+        public ActionResult<Address> GetAddress(string regNo, bool lastDestinationOnly = true)
         {
-            IList<Address> list = new List<Address>();
-                list = vehiclesRepository.GetAddress(regNumber, lastDestinationOnly);
-            if (list.Count > 0)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                return new OkObjectResult(list);
+                IList<Address> list = new List<Address>();
+                list = vehiclesRepository.GetAddress(regNo, lastDestinationOnly);
+                if (list.Count > 0)
+                {
+                    return new OkObjectResult(list);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
+
             }
         }
 
         [HttpPost]
-        [Route("/Address")]
-        public ActionResult<string> PostAddress(string regNumber, string destination)
+        [Route("/Address/{regNo}")]
+        public ActionResult<string> PostAddress(string regNo, string destination)
         {
-            Guid resultId = vehiclesRepository.PostAddress(regNumber, destination);
-            if (resultId != Guid.Empty)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                return new OkObjectResult(resultId);
+                Guid resultId = vehiclesRepository.PostAddress(regNo, destination);
+                if (resultId != Guid.Empty)
+                {
+                    return new OkObjectResult(resultId);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
         }
 
         [HttpGet]
-        [Route("/DrivingJournal")]
-        public ActionResult<DrivingJournal> GetDrivingJournal(string regNumber, DateTime searchDate, DateTime startTime, DateTime endTime)
+        [Route("/DrivingJournal/{regNo}")]
+        public ActionResult<DrivingJournal> GetDrivingJournal(string regNo, DateTime searchDate, DateTime startTime, DateTime endTime)
         {
-            IList<DrivingJournal> list = new List<DrivingJournal>();
-            if (searchDate.Year == 1 && startTime.Year == 1 && endTime.Year == 1)
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                list = vehiclesRepository.GetDrivingJournal(regNumber);
-            }
-            else if (searchDate.Year != 1)
-            {
-                list = vehiclesRepository.GetDrivingJournal(regNumber, searchDate);
+                IList<DrivingJournal> list = new List<DrivingJournal>();
+                if (searchDate.Year == 1 && startTime.Year == 1 && endTime.Year == 1)
+                {
+                    list = vehiclesRepository.GetDrivingJournal(regNo);
+                }
+                else if (searchDate.Year != 1)
+                {
+                    list = vehiclesRepository.GetDrivingJournal(regNo, searchDate);
+                }
+                else
+                {
+                    list = vehiclesRepository.GetDrivingJournal(regNo, startTime, endTime);
+                }
+                if (list.Count > 0)
+                {
+                    return new OkObjectResult(list);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                list = vehiclesRepository.GetDrivingJournal(regNumber, startTime, endTime);
-            }
-
-            
-            if (list.Count > 0)
-            {
-                return new OkObjectResult(list);
-            }
-            else
-            {
-                return new NotFoundResult();
+                return new UnauthorizedResult();
             }
         }
 
         [HttpPost]
-        [Route("/DrivingJournal")]
-        public ActionResult<Guid> PostDrivingJournal(string regNumber, string startTime, string stopTime, 
-            double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel)
+        [Route("/DrivingJournal/{regNo}")]
+        public ActionResult<Guid> PostDrivingJournal(string regNo, string startTime, string stopTime,
+            double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel )
         {
-            DateTime startTime1;
-            DateTime stopTime1;
-            if (String.IsNullOrEmpty(startTime) || String.IsNullOrEmpty(stopTime))
+            if (cdsRepository.ValidateOwnerOfCar(regNo, Identity.CdsCustomerId))
             {
-                startTime1 = DateTime.Now;
-                stopTime1 = DateTime.Now.AddHours(5);
+                DateTime startTime1;
+                DateTime stopTime1;
+                if (String.IsNullOrEmpty(startTime) || String.IsNullOrEmpty(stopTime))
+                {
+                    startTime1 = DateTime.Now;
+                    stopTime1 = DateTime.Now.AddHours(5);
+                }
+                else
+                {
+                    startTime1 = DateTime.Parse(startTime);
+                    stopTime1 = DateTime.Parse(stopTime);
+                }
+                Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNo, startTime1, stopTime1, distanceInKilometers,
+                    energyConsumptionInkWh, typeOfTravel);
+                if (drivingJournalId != Guid.Empty)
+                {
+                    return new OkObjectResult(drivingJournalId);
+                }
+                else
+                {
+                    return new NotFoundResult();
+                }
             }
             else
             {
-                startTime1 = DateTime.Parse(startTime);
-                stopTime1 = DateTime.Parse(stopTime);
+                return new UnauthorizedResult();
             }
-            Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNumber, startTime1, stopTime1, distanceInKilometers, 
-                energyConsumptionInkWh, typeOfTravel);
-            if (drivingJournalId != Guid.Empty)
+        }
+
+        [HttpPatch]
+        [Route("/DrivingJournal/id")]
+        public ActionResult<DrivingJournal> PatchedDrivingJournal(Guid id, string typeOfTravel)
+        {
+           //Behövs ingen kontroll av ägande pga det kontrolleras när man hämtar ut alla drivingjournals.
+            IList<DrivingJournal> drivingJournalList = vehiclesRepository.PatchDrivingJournal(id, typeOfTravel);
+            if (drivingJournalList.Count > 0)
             {
-                return new OkObjectResult(drivingJournalId);
+                return new OkObjectResult(drivingJournalList);
             }
             else
             {
                 return new NotFoundResult();
             }
         }
-        #endregion
+            
+#endregion
     }
 
     [Route("api/CDS")]
     public class CDSController : ControllerBase
     {
-        #region Private
+#region Private
         private readonly CDSRepository cdsRepository;
-        #endregion
+#endregion
 
-        #region Public
+#region Public
         public CDSController()
         {
             cdsRepository = new CDSRepository();
         }
 
         [HttpGet]
-        [Route("/Auth")]
-        public ActionResult<LoginResponse> Authenticate(string userName = "edgave", string password = "IoT20!!!")
+        [Route("/Auth/{userName}/{pwd}")]
+        public ActionResult<LoginResponse> Authenticate(string userName = "edgave", string pwd = "IoT20!!!")
         {
-            var loginResponse = cdsRepository.Authenticate(userName, password);
+            var loginResponse = cdsRepository.Authenticate(userName, pwd);
             if (loginResponse != null)
             {
                 Identity.CdsToken = loginResponse.AccessToken;
                 Identity.CdsUserId = loginResponse.Id;
+                Identity.CdsCustomerId = loginResponse.CustomerId;
+
                 return new OkObjectResult(loginResponse);
             }
             else
@@ -224,7 +306,7 @@ namespace VHS.Web.Controllers
         }
 
         [HttpGet]
-        [Route("/Customer")]
+        [Route("/Customer/{customerId}")]
         public ActionResult<Customer> GetCustomer(Guid customerId)
         {
             var customer = cdsRepository.GetCustomer(customerId);
@@ -239,11 +321,17 @@ namespace VHS.Web.Controllers
         }
 
         [HttpGet]
-        [Route("/Validate")]
+        [Route("/Validate/{userId}/{accessToken}")]
         public bool GetValidate(Guid userId, string accessToken)
         {
             return cdsRepository.Validate(userId, accessToken);
         }
-        #endregion
+
+
+        //patch//update på driving journal där man ändrar typeOftravel
+        //utveckla search metoden till att gå på typeOfTravel om man vill
+        //delete??
+
+#endregion
     }
 }

@@ -34,6 +34,21 @@ namespace VHS.Core.Repository
             return response;
         }
 
+        public bool ValidateOwnerOfCar(string regNo, Guid customerId)
+        {
+            var customer = GetCustomer(customerId);
+
+            foreach (Vehicle x in customer.Vehicles)
+            {
+                if (x.RegNo == regNo.ToUpper())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public bool Validate(Guid userId, string accessToken)
         {
             var request = new RestRequest($"api/cds/v1.0/user/{ userId }/validate?token={ HttpUtility.UrlEncode(accessToken)}");

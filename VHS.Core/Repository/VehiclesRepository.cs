@@ -143,6 +143,35 @@ namespace VHS.Core.Repository
             return drivingJournalList;
         }
 
+        public IList<DrivingJournal> GetDrivingJournal(Guid id)
+        {
+            IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
+            SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
+            var parameters = new SqlParameters();
+            parameters.Add(new SqlParameter("@DrivingJournalId", SqlDbType.UniqueIdentifier)
+            { Value = id });
+            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_GetByGuid", ref parameters, System.Data.CommandType.StoredProcedure);
+            while (dr.Read())
+            {
+                drivingJournalList.Add(new DrivingJournal()
+                {
+                    DrivingJournalId = dr.GetGuid(0),
+                    RegistrationNumber = dr.GetString(1),
+                    StartTime = dr.GetDateTime(2),
+                    StopTime = dr.GetDateTime(3),
+                    DistanceInKm = dr.GetDouble(4),
+                    EnergyConsumptionInkWh = dr.GetDouble(5),
+                    AverageConsumptionInkWhPer100km = dr.GetDouble(6),
+                    AverageSpeedInKmPerHour = dr.GetDouble(7),
+                    TypeOfTravel = dr.GetString(8),
+                    DateOfCreation = dr.GetDateTime(9),
+                    DateLastModified = dr.GetDateTime(10)
+                });
+            }
+            DbAccess.DisposeReader(ref dr);
+            return drivingJournalList;
+        }
+
         public IList<DrivingJournal> GetDrivingJournal(string regNumber, DateTime searchDate)
         {
             IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
@@ -228,6 +257,23 @@ namespace VHS.Core.Repository
             myConnection.Close();
             return drivingJournalId;
         }
+
+        public IList<DrivingJournal> PatchDrivingJournal(Guid id, string typeOfTravel)
+        {
+            SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
+            myConnection.Open();
+            SqlCommand cmd = new SqlCommand("dbo.sDrivingJournal_PatchTravelTypeByGuid", myConnection) 
+                { CommandType = System.Data.CommandType.StoredProcedure };
+            cmd.Parameters.Add(new SqlParameter("@DrivingJournalId", SqlDbType.UniqueIdentifier)
+            { Value = id });
+            cmd.Parameters.Add(new SqlParameter("@TypeOfTravel", SqlDbType.NVarChar, 50) { Value = typeOfTravel });
+            cmd.ExecuteNonQuery();
+            myConnection.Close();
+
+            IList<DrivingJournal> drivingJournalList = GetDrivingJournal(id);
+            return drivingJournalList;
+        }
+
 
         public Guid PostAlarm(string regNumber, double positionLatitude, double positionLongitude)
         {
