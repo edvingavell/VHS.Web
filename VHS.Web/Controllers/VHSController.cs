@@ -201,8 +201,8 @@ namespace VHS.Web.Controllers
         }
 
         [HttpPatch]
-        [Route("/DrivingJournal/id")]
-        public ActionResult<DrivingJournal> PatchedDrivingJournal(Guid id, string typeOfTravel)
+        [Route("/DrivingJournal/{id}/{typeOfTravel}")]
+        public ActionResult<DrivingJournal> PatchDrivingJournal(Guid id, string typeOfTravel)
         {
            //Behövs ingen kontroll av ägande pga det kontrolleras när man hämtar ut alla drivingjournals.
             IList<DrivingJournal> drivingJournalList = vehiclesRepository.PatchDrivingJournal(id, typeOfTravel);
