@@ -5,11 +5,11 @@ using VHS.Core.Repository;
 
 namespace VHS.Web.Filters
 {
-    public class CheckOwnershipOfCarFilter : IActionFilter
+    public class ClaimOwnershipOfCarFilter : IActionFilter
     {
         private readonly CDSRepository cdsRepository;
 
-        public CheckOwnershipOfCarFilter()
+        public ClaimOwnershipOfCarFilter()
         {
             cdsRepository = new CDSRepository();
         }
@@ -21,11 +21,8 @@ namespace VHS.Web.Filters
         void IActionFilter.OnActionExecuting(ActionExecutingContext context)
         {
             var customerId = Identity.CdsCustomerId;
-
             string regNo = context.ActionArguments["regNo"].ToString();
-
             var hasOwnership = cdsRepository.ValidateOwnerOfCar(customerId, regNo);
-
             if (!hasOwnership)
             {
                 context.Result = new UnauthorizedResult();

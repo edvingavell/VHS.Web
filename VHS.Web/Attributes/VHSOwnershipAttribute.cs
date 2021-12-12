@@ -5,7 +5,7 @@ namespace VHS.Web.Attributes
 {
     public class VHSOwnershipAttribute : TypeFilterAttribute
     {
-        public VHSOwnershipAttribute() : base(typeof(CheckOwnershipOfCarFilter))
+        public VHSOwnershipAttribute() : base(typeof(ClaimOwnershipOfCarFilter))
         {
         }
     }
