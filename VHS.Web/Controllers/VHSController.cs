@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using VHS.Core.Entity;
 using Newtonsoft.Json;
 using VHS.Core;
-using VHS.Core.Repository;
+using VHS.Core.Entity;
 using VHS.Core.Entity.Dto;
+using VHS.Core.Repository;
 using VHS.Web.Attributes;
 
 namespace VHS.Web.Controllers
@@ -17,7 +17,6 @@ namespace VHS.Web.Controllers
     {
         #region Private
         private readonly VehiclesRepository vehiclesRepository;
-        private readonly CDSRepository cdsRepository;
         #endregion
 
         #region Public
@@ -50,15 +49,14 @@ namespace VHS.Web.Controllers
             int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, 
             double tireLF, double tireLB, double tireRF, double tireRB)
         {
-            bool correctTirePressures = Misc.CheckTirePressures(tireLF, tireLB, tireRF, tireRB);
-            if (correctTirePressures)
-            {
                 var tirePressures = new List<double>() { tireLF,
                 tireLB, tireRF, tireRB };
                 Guid resultId = vehiclesRepository.PostStatus(regNo, batteryStatus, tripMeter, engineRunning, lockStatus, alarmStatus,
                     tirePressures, positionLatitude, positionLongitude);
+            if (resultId != Guid.Empty)
+            {
                 return new OkObjectResult(resultId);
-            }
+            }   
             else
             {
                 return new NotFoundResult();
