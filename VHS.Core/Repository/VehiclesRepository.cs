@@ -73,7 +73,7 @@ namespace VHS.Core.Repository
         public IList<Status> PostStatus(string regNo, int batteryStatus, double tripMeter, int engineRunning, 
             int lockStatus, int alarmStatus, List<double> tirePressures, double positionLatitude, double positionLongitude)
         {
-            if (ValidateRegNo(regNo) && ValidateIntAsBool(batteryStatus) && ValidateIntAsBool(engineRunning) 
+            if (ValidateRegNo(regNo) && ValidateIntAsBool(engineRunning) 
                 && ValidateIntAsBool(lockStatus) && ValidateIntAsBool(alarmStatus))
             {
                 SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
