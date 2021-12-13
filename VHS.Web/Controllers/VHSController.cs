@@ -240,7 +240,22 @@ namespace VHS.Web.Controllers
             {
                 return new NotFoundResult();
             }
-        }    
+        }
+
+        [HttpDelete]
+        [Route("/DrivingJournal/{id}")]
+        public ActionResult<Guid> DeleteDrivingJournal(Guid id)
+        {
+            Guid? x = vehiclesRepository.DeleteDrivingJournal(id);
+            if (x != null)
+            {
+                return new OkObjectResult(x);
+            }
+            else
+            {
+                return new NotFoundResult();
+            }
+        }
         #endregion
     }
 

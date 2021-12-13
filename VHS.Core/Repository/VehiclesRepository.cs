@@ -207,6 +207,30 @@ namespace VHS.Core.Repository
             }
         }
 
+        public Guid? DeleteDrivingJournal(Guid id)
+        {
+            var list = GetDrivingJournal(id);
+            var targetId = new Guid();
+            foreach (var item in list)
+            {
+                targetId = item.DrivingJournalId;
+            }
+            if (id.Equals(targetId))
+            {
+                SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
+                myConnection.Open();
+                SqlCommand cmd = new SqlCommand("dbo.sDrivingJournal_DeleteByGuid", myConnection) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.Add(new SqlParameter("@DrivingJournalId", SqlDbType.UniqueIdentifier) { Value = id });
+                cmd.ExecuteNonQuery();
+                myConnection.Close();
+                return id;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         public IList<DrivingJournal> GetDrivingJournal(Guid id)
         {
             IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
