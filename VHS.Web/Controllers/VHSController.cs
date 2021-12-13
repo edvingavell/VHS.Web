@@ -31,7 +31,10 @@ namespace VHS.Web.Controllers
         public ActionResult<IList<Status>> GetStatus(string regNo)
         {
             var userList = vehiclesRepository.GetStatus(regNo);
-
+            if (userList == null)
+            {
+                return new BadRequestResult();
+            }
             if (userList.Count != 0)
             {
                 return new OkObjectResult(userList);
@@ -45,18 +48,21 @@ namespace VHS.Web.Controllers
         [VHSOwnership]
         [HttpPost]
         [Route("/Status/{regNo}")]
-        public ActionResult<Guid> PostStatus(string regNo, double positionLatitude, double positionLongitude,
+        public ActionResult<IList<Status>> PostStatus(string regNo, double positionLatitude, double positionLongitude,
             int batteryStatus, double tripMeter, int engineRunning, int lockStatus, int alarmStatus, 
             double tireLF, double tireLB, double tireRF, double tireRB)
         {
-                var tirePressures = new List<double>() { tireLF,
-                tireLB, tireRF, tireRB };
-                Guid resultId = vehiclesRepository.PostStatus(regNo, batteryStatus, tripMeter, engineRunning, lockStatus, alarmStatus,
-                    tirePressures, positionLatitude, positionLongitude);
-            if (resultId != Guid.Empty)
+                var tirePressures = new List<double>() { tireLF, tireLB, tireRF, tireRB };
+                var result = vehiclesRepository.PostStatus(regNo, batteryStatus, tripMeter, 
+                    engineRunning, lockStatus, alarmStatus, tirePressures, positionLatitude, positionLongitude);
+            if (result == null)
             {
-                return new OkObjectResult(resultId);
-            }   
+                return new BadRequestResult();
+            }
+            if (result.Count != 0)
+            {
+                return new OkObjectResult(result);
+            }
             else
             {
                 return new NotFoundResult();
@@ -66,10 +72,14 @@ namespace VHS.Web.Controllers
         [VHSOwnership]
         [HttpPost]
         [Route("/Alarm/{regNo}")]
-        public ActionResult<Guid> PostAlarm(string regNo, double positionLatitude, double positionLongitude)
+        public ActionResult<Guid?> PostAlarm(string regNo, double positionLatitude, double positionLongitude)
         {
             //Bilen postar upp sin status
-            Guid resultId = vehiclesRepository.PostAlarm(regNo, positionLatitude, positionLongitude);
+            Guid? resultId = vehiclesRepository.PostAlarm(regNo, positionLatitude, positionLongitude);
+            if (resultId == null) 
+            { 
+                return new BadRequestResult(); 
+            }
             if (resultId != Guid.Empty)
             {
                 return new OkObjectResult(resultId);
@@ -90,6 +100,10 @@ namespace VHS.Web.Controllers
             //skickar sms till bilen
             //bilen postar upp sin status (position)
             var list = vehiclesRepository.GetStatus(regNo);
+            if (list == null)
+            {
+                return new BadRequestResult();
+            }
             if (list.Count > 0 && list[0].PositionLatitude != null && list[0].PositionLongitude != null)
             {
                 var position = new List<double>() { list[0].PositionLatitude.Value,
@@ -111,8 +125,11 @@ namespace VHS.Web.Controllers
         [Route("/Address/{regNo}")]
         public ActionResult<Address> GetAddress(string regNo, bool lastDestinationOnly = true)
         {
-            IList<Address> list = new List<Address>();
-            list = vehiclesRepository.GetAddress(regNo, lastDestinationOnly);
+            IList<Address> list = vehiclesRepository.GetAddress(regNo, lastDestinationOnly);
+            if (list == null)
+            {
+                return new BadRequestResult();
+            }
             if (list.Count > 0)
             {
                 return new OkObjectResult(list);
@@ -126,12 +143,16 @@ namespace VHS.Web.Controllers
         [VHSOwnership]
         [HttpPost]
         [Route("/Address/{regNo}")]
-        public ActionResult<string> PostAddress(string regNo, string destination)
+        public ActionResult<Address> PostAddress(string regNo, string destination)
         {
-            Guid resultId = vehiclesRepository.PostAddress(regNo, destination);
-            if (resultId != Guid.Empty)
+            var result = vehiclesRepository.PostAddress(regNo, destination);
+            if (result == null)
             {
-                return new OkObjectResult(resultId);
+                return new BadRequestResult();
+            }
+            if (result.RegistrationNumber == regNo)
+            {
+                return new OkObjectResult(result);
             }
             else
             {
@@ -144,7 +165,7 @@ namespace VHS.Web.Controllers
         [Route("/DrivingJournal/{regNo}")]
         public ActionResult<DrivingJournal> GetDrivingJournal(string regNo, DateTime searchDate, DateTime startTime, DateTime endTime)
         {
-            IList<DrivingJournal> list = new List<DrivingJournal>();
+            IList<DrivingJournal> list;
             if (searchDate.Year == 1 && startTime.Year == 1 && endTime.Year == 1)
             {
                 list = vehiclesRepository.GetDrivingJournal(regNo);
@@ -156,6 +177,10 @@ namespace VHS.Web.Controllers
             else
             {
                 list = vehiclesRepository.GetDrivingJournal(regNo, startTime, endTime);
+            }
+            if (list == null)
+            {
+                return new BadRequestResult();
             }
             if (list.Count > 0)
             {
@@ -170,7 +195,7 @@ namespace VHS.Web.Controllers
         [VHSOwnership]
         [HttpPost]
         [Route("/DrivingJournal/{regNo}")]
-        public ActionResult<Guid> PostDrivingJournal(string regNo, string startTime, string stopTime,
+        public ActionResult<IList<DrivingJournal>> PostDrivingJournal(string regNo, string startTime, string stopTime,
             double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel )
         {
             DateTime startTime1;
@@ -185,11 +210,15 @@ namespace VHS.Web.Controllers
                 startTime1 = DateTime.Parse(startTime);
                 stopTime1 = DateTime.Parse(stopTime);
             }
-            Guid drivingJournalId = vehiclesRepository.PostDrivingJournal(regNo, startTime1, stopTime1, distanceInKilometers,
+            var list = vehiclesRepository.PostDrivingJournal(regNo, startTime1, stopTime1, distanceInKilometers,
                 energyConsumptionInkWh, typeOfTravel);
-            if (drivingJournalId != Guid.Empty)
+            if (list == null)
             {
-                return new OkObjectResult(drivingJournalId);
+                return new BadRequestResult();
+            }
+            if (list.Count > 0)
+            {
+                return new OkObjectResult(list);
             }
             else
             {
@@ -268,7 +297,6 @@ namespace VHS.Web.Controllers
         {
             return cdsRepository.Validate(userId, accessToken);
         }
-        //patch//update på driving journal där man ändrar typeOftravel
         //utveckla search metoden till att gå på typeOfTravel om man vill
         //delete??
         #endregion

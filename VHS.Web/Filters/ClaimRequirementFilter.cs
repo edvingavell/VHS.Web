@@ -18,9 +18,7 @@ namespace VHS.Web.Filters
         {
             var token = Identity.CdsToken;
             var userId = Identity.CdsUserId;
-
             var hasClaim = cdsRepository.Validate(userId, token);
-
             if (!hasClaim)
             {
                 context.Result = new UnauthorizedResult();
