@@ -46,7 +46,6 @@ namespace VHS.Web.Controllers
             }
         }
 
-
         [VHSOwnership]
         [HttpGet]
         [Route("/Status/{regNo}")]
@@ -334,8 +333,15 @@ namespace VHS.Web.Controllers
         {
             return cdsRepository.Validate(userId, accessToken);
         }
-        //utveckla search metoden till att gå på typeOfTravel om man vill
-        //delete??
+
+        //[HttpGet]
+        //[Route("/GetCarsWithoutOwners")]
+        //Lista alla bilar som inte har en owner från CDS
+
+        //[HttpPost]
+        //[Route("/Vehicle/owner/{vin}/{customerId}")]
+        //Tala om för cds att jag skall äga denna bilen
+
         #endregion
     }
 }
