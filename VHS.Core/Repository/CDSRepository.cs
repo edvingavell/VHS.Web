@@ -37,7 +37,6 @@ namespace VHS.Core.Repository
         public bool ValidateOwnerOfCar(Guid customerId, string regNo)
         {
             var customer = GetCustomer(customerId);
-
             foreach (Vehicle x in customer.Vehicles)
             {
                 if (x.RegNo == regNo.ToUpper())
@@ -45,8 +44,25 @@ namespace VHS.Core.Repository
                     return true;
                 }
             }
-
             return false;
+        }
+
+        public IList<Vehicle> GetYourCars(Guid customerId)
+        {
+            var customer = GetCustomer(customerId);
+            List<Vehicle> list = new List<Vehicle>();
+            if (customer.Vehicles != null)
+            {
+                foreach (Vehicle x in customer.Vehicles)
+                {
+                    list.Add(x);
+                }
+                return list;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public bool Validate(Guid userId, string accessToken)

@@ -17,13 +17,35 @@ namespace VHS.Web.Controllers
     {
         #region Private
         private readonly VehiclesRepository vehiclesRepository;
+        private readonly CDSRepository cdsRepository;
         #endregion
 
         #region Public
         public VHSController()
         {
             vehiclesRepository = new VehiclesRepository();
+            cdsRepository = new CDSRepository();
         }
+
+        [HttpGet]
+        [Route("/YourCars")]
+        public ActionResult<Vehicle> GetYourCars()
+        {
+            var result = cdsRepository.GetYourCars(Identity.CdsCustomerId);
+            if (result == null)
+            {
+                return new BadRequestResult();
+            }
+            if (result.Count != 0)
+            {
+                return new OkObjectResult(result);
+            }
+            else
+            {
+                return new NotFoundResult();
+            }
+        }
+
 
         [VHSOwnership]
         [HttpGet]
