@@ -13,7 +13,7 @@ namespace VHS.Core.Entity
         public double EnergyConsumptionInkWh { get; set; }
         public double AverageConsumptionInkWhPer100km { get; set; }
         public double AverageSpeedInKmPerHour { get; set; }
-        public string TypeOfTravel { get; set; }
+        public bool BuisnessTravel { get; set; }
         public DateTime DateOfCreation { get; set; }      
         public DateTime DateLastModified { get; set; }
     }

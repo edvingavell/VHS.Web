@@ -187,21 +187,11 @@ namespace VHS.Web.Controllers
         [VHSOwnership]
         [HttpGet]
         [Route("/DrivingJournal/{regNo}")]
-        public ActionResult<DrivingJournal> GetDrivingJournal(string regNo, DateTime searchDate, DateTime startTime, DateTime endTime)
+        public ActionResult<IList<DrivingJournal>> GetDrivingJournals(string regNo, Guid? FilterGuid, DateTime? FilterDate, 
+            DateTime? FilterStartTime,DateTime? FilterStopTime,bool? FilterBuisnessTravel)
         {
-            IList<DrivingJournal> list;
-            if (searchDate.Year == 1 && startTime.Year == 1 && endTime.Year == 1)
-            {
-                list = vehiclesRepository.GetDrivingJournal(regNo);
-            }
-            else if (searchDate.Year != 1)
-            {
-                list = vehiclesRepository.GetDrivingJournal(regNo, searchDate);
-            }
-            else
-            {
-                list = vehiclesRepository.GetDrivingJournal(regNo, startTime, endTime);
-            }
+            IList<DrivingJournal> list = vehiclesRepository.GetDrivingJournals(regNo, FilterGuid, FilterDate,
+             FilterStartTime, FilterStopTime, FilterBuisnessTravel);
             if (list == null)
             {
                 return new BadRequestResult();
@@ -216,11 +206,46 @@ namespace VHS.Web.Controllers
             }
         }
 
+        //[VHSOwnership]
+        //[HttpGet]
+        //[Route("/DrivingJournal/{regNo}")]
+        //public ActionResult<DrivingJournal> GetDrivingJournal(string regNo, DateTime searchDate, DateTime fromDate,
+        //    DateTime toDate, bool buisnessTravel)
+        //{
+        //    IList<DrivingJournal> list;
+
+        //    if (searchDate.Year == 1 && fromDate.Year == 1 && toDate.Year == 1)
+        //    {
+        //        list = vehiclesRepository.GetDrivingJournal(regNo);
+        //    }
+        //    else if (searchDate.Year != 1)
+        //    {
+        //        list = vehiclesRepository.GetDrivingJournal(regNo, searchDate);
+        //    }
+        //    else
+        //    {
+        //        list = vehiclesRepository.GetDrivingJournal(regNo, fromDate, toDate);
+        //    }
+
+        //    if (list == null)
+        //    {
+        //        return new BadRequestResult();
+        //    }
+        //    if (list.Count > 0)
+        //    {
+        //        return new OkObjectResult(list);
+        //    }
+        //    else
+        //    {
+        //        return new NotFoundResult();
+        //    }
+        //}
+
         [VHSOwnership]
         [HttpPost]
         [Route("/DrivingJournal/{regNo}")]
         public ActionResult<IList<DrivingJournal>> PostDrivingJournal(string regNo, string startTime, string stopTime,
-            double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel )
+            double distanceInKilometers, double energyConsumptionInkWh, bool buisnessTravel=false)
         {
             DateTime startTime1;
             DateTime stopTime1;
@@ -235,7 +260,7 @@ namespace VHS.Web.Controllers
                 stopTime1 = DateTime.Parse(stopTime);
             }
             var list = vehiclesRepository.PostDrivingJournal(regNo, startTime1, stopTime1, distanceInKilometers,
-                energyConsumptionInkWh, typeOfTravel);
+                energyConsumptionInkWh, buisnessTravel);
             if (list == null)
             {
                 return new BadRequestResult();
@@ -251,11 +276,11 @@ namespace VHS.Web.Controllers
         }
 
         [HttpPatch]
-        [Route("/Gustav/DrivingJournal/{id}/{typeOfTravel}")]
-        public ActionResult<DrivingJournal> PatchDrivingJournal(Guid id, string typeOfTravel)
+        [Route("/Gustav/DrivingJournal/{id}/{buisnessTravel}")]
+        public ActionResult<DrivingJournal> PatchDrivingJournal(Guid id, bool buisnessTravel=false)
         {
            //Behövs ingen kontroll av ägande pga det kontrolleras när man hämtar ut alla drivingjournals.
-            IList<DrivingJournal> drivingJournalList = vehiclesRepository.PatchDrivingJournal(id, typeOfTravel);
+            IList<DrivingJournal> drivingJournalList = vehiclesRepository.PatchDrivingJournal(id, buisnessTravel);
             if (drivingJournalList.Count > 0)
             {
                 return new OkObjectResult(drivingJournalList);

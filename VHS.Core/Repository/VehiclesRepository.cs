@@ -193,7 +193,7 @@ namespace VHS.Core.Repository
                         EnergyConsumptionInkWh = dr.GetDouble(5),
                         AverageConsumptionInkWhPer100km = dr.GetDouble(6),
                         AverageSpeedInKmPerHour = dr.GetDouble(7),
-                        TypeOfTravel = dr.GetString(8),
+                        BuisnessTravel = (bool)dr.GetSqlBoolean(8),
                         DateOfCreation = dr.GetDateTime(9),
                         DateLastModified = dr.GetDateTime(10)
                     });
@@ -231,6 +231,58 @@ namespace VHS.Core.Repository
             }
         }
 
+        public IList<DrivingJournal> GetDrivingJournals(string regNo, Guid? filterGuid, DateTime? filterDate,
+            DateTime? filterStartTime, DateTime? filterStopTime, bool? filterBuisnessTravel)
+        {
+            var result = new List<DrivingJournal>();
+            SqlDbAccess DbAccess = new SqlDbAccess(ExpressDb.ConnectionString);
+            var parameters = new SqlParameters();
+            parameters.AddNVarChar("@RegistrationNumber", 50, regNo);
+            if (filterGuid != null)
+            {
+                parameters.AddUniqueIdentifier("@FilterGuid", filterGuid.Value);
+            }
+            else
+            {
+                var p = new SqlParameter("@FilterGuid", SqlDbType.UniqueIdentifier);
+                p.Value = DBNull.Value;
+                parameters.Add(p);
+            }
+            parameters.AddDateTime("@FilterDate", filterDate);
+            parameters.AddDateTime("@FilterStartTime", filterStartTime);
+            parameters.AddDateTime("@FilterStopTime", filterStopTime);
+            if (filterBuisnessTravel != null)
+            {
+                parameters.AddBoolean("@FilterBuisnessTravel", filterBuisnessTravel.Value);
+            }
+            else
+            {
+                var p = new SqlParameter("@FilterBuisnessTravel", SqlDbType.Bit);
+                p.Value = DBNull.Value;
+                parameters.Add(p);
+            }
+            var dr = DbAccess.ExecuteReader("dbo.sDrivingJournal_Get", ref parameters, CommandType.StoredProcedure);
+            while (dr.Read())
+            {
+                result.Add(new DrivingJournal()
+                {
+                    DrivingJournalId = dr.GetGuid(0),
+                    RegistrationNumber = dr.GetString(1),
+                    StartTime = dr.GetDateTime(2),
+                    StopTime = dr.GetDateTime(3),
+                    DistanceInKm = dr.GetDouble(4),
+                    EnergyConsumptionInkWh = dr.GetDouble(5),
+                    AverageConsumptionInkWhPer100km = dr.GetDouble(6),
+                    AverageSpeedInKmPerHour = dr.GetDouble(7),
+                    DateOfCreation = dr.GetDateTime(8),
+                    BuisnessTravel = (bool)dr.GetSqlBoolean(9),
+                    DateLastModified = dr.GetDateTime(10)
+                });
+            }
+            DbAccess.DisposeReader(ref dr);
+            return result;
+        }
+
         public IList<DrivingJournal> GetDrivingJournal(Guid id)
         {
             IList<DrivingJournal> drivingJournalList = new List<DrivingJournal>();
@@ -251,7 +303,7 @@ namespace VHS.Core.Repository
                     EnergyConsumptionInkWh = dr.GetDouble(5),
                     AverageConsumptionInkWhPer100km = dr.GetDouble(6),
                     AverageSpeedInKmPerHour = dr.GetDouble(7),
-                    TypeOfTravel = dr.GetString(8),
+                    BuisnessTravel = (bool) dr.GetSqlBoolean(8),
                     DateOfCreation = dr.GetDateTime(9),
                     DateLastModified = dr.GetDateTime(10)
                 });
@@ -282,7 +334,7 @@ namespace VHS.Core.Repository
                         EnergyConsumptionInkWh = dr.GetDouble(5),
                         AverageConsumptionInkWhPer100km = dr.GetDouble(6),
                         AverageSpeedInKmPerHour = dr.GetDouble(7),
-                        TypeOfTravel = dr.GetString(8),
+                        BuisnessTravel = (bool)dr.GetSqlBoolean(8),
                         DateOfCreation = dr.GetDateTime(9),
                         DateLastModified = dr.GetDateTime(10)
                     });
@@ -321,7 +373,7 @@ namespace VHS.Core.Repository
                         EnergyConsumptionInkWh = dr.GetDouble(5),
                         AverageConsumptionInkWhPer100km = dr.GetDouble(6),
                         AverageSpeedInKmPerHour = dr.GetDouble(7),
-                        TypeOfTravel = dr.GetString(8),
+                        BuisnessTravel = (bool)dr.GetSqlBoolean(8),
                         DateOfCreation = dr.GetDateTime(9),
                         DateLastModified = dr.GetDateTime(10)
                     });
@@ -336,7 +388,7 @@ namespace VHS.Core.Repository
         }
 
         public IList<DrivingJournal> PostDrivingJournal(string regNo, DateTime startTime1, DateTime stopTime1, 
-            double distanceInKilometers, double energyConsumptionInkWh, string typeOfTravel)
+            double distanceInKilometers, double energyConsumptionInkWh, bool buisnessTravel=false)
         {
             if (ValidateRegNo(regNo))
             {
@@ -355,7 +407,7 @@ namespace VHS.Core.Repository
                 cmd.Parameters.Add(new SqlParameter("@EnergyConsumptionInkWh", SqlDbType.Float) { Value = energyConsumptionInkWh });
                 cmd.Parameters.Add(new SqlParameter("@AverageConsumptionInkWhPer100km", SqlDbType.Float) { Value = averageConsumptionInkWhPer100km });
                 cmd.Parameters.Add(new SqlParameter("@AverageSpeedInKmPerHour", SqlDbType.Float) { Value = averageSpeedInKilometersPerHour });
-                cmd.Parameters.Add(new SqlParameter("@TypeOfTravel", SqlDbType.NVarChar, 50) { Value = typeOfTravel });
+                cmd.Parameters.Add(new SqlParameter("@BuisnessTravel", SqlDbType.Bit) { Value = buisnessTravel });
                 cmd.ExecuteNonQuery();
                 var drivingJournalId = new Guid(cmd.Parameters[0].Value.ToString());
                 myConnection.Close();
@@ -367,7 +419,7 @@ namespace VHS.Core.Repository
             }
         }
 
-        public IList<DrivingJournal> PatchDrivingJournal(Guid id, string typeOfTravel)
+        public IList<DrivingJournal> PatchDrivingJournal(Guid id, bool buisnessTravel = false)
         {
             SqlConnection myConnection = new SqlConnection(ExpressDb.ConnectionString);
             myConnection.Open();
@@ -375,7 +427,7 @@ namespace VHS.Core.Repository
                 { CommandType = CommandType.StoredProcedure };
             cmd.Parameters.Add(new SqlParameter("@DrivingJournalId", SqlDbType.UniqueIdentifier)
             { Value = id });
-            cmd.Parameters.Add(new SqlParameter("@TypeOfTravel", SqlDbType.NVarChar, 50) { Value = typeOfTravel });
+            cmd.Parameters.Add(new SqlParameter("@BuisnessTravel", SqlDbType.Bit) { Value = buisnessTravel });
             cmd.ExecuteNonQuery();
             myConnection.Close();
             IList<DrivingJournal> drivingJournalList = GetDrivingJournal(id);
