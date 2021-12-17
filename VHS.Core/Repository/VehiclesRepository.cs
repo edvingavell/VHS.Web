@@ -378,7 +378,6 @@ namespace VHS.Core.Repository
             cmd.Parameters.Add(new SqlParameter("@TypeOfTravel", SqlDbType.NVarChar, 50) { Value = typeOfTravel });
             cmd.ExecuteNonQuery();
             myConnection.Close();
-
             IList<DrivingJournal> drivingJournalList = GetDrivingJournal(id);
             return drivingJournalList;
         }

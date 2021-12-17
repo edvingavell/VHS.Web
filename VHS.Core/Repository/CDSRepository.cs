@@ -19,8 +19,6 @@ namespace VHS.Core.Repository
 
         public LoginResponse Authenticate(string userName, string password)
         {
-            var accessToken = string.Empty;
-
             var request = new RestRequest($"api/cds/v1.0/user/authenticate?userName=" +
                     $"{HttpUtility.UrlEncode(userName)}&pwd={HttpUtility.UrlEncode(password)}", Method.GET);
             var response = Execute<LoginResponse>(request, false);
@@ -84,6 +82,31 @@ namespace VHS.Core.Repository
                 return (T)(object)result;
             }
             return default(T);
+        }
+
+        public IList<FullVehicle> GetCarsWithOutOwners()
+        {
+            IList<FullVehicle> cars = new List<FullVehicle>();
+            var request = new RestRequest($"api/cds/v1.0/vehicle/list", Method.GET);
+            var result = Execute<IList<FullVehicle>>(request);
+            if (result != null)
+            {
+                foreach(var vehicle in result)
+                {
+                    if (vehicle.Owner == null || vehicle.Owner.OwnerStatus == 0)
+                    {
+                        cars.Add(vehicle);
+                    }
+                }
+            }
+            return cars;
+        }
+
+        public FullVehicle PostOwnershipOfCar(string vin)
+        {
+            var request = new RestRequest($"api/cds/v1.0/vehicle/owner/{HttpUtility.UrlEncode(vin)}/{HttpUtility.UrlEncode(Identity.CdsCustomerId.ToString())}", Method.POST);
+            var response = Execute<FullVehicle>(request);
+            return response;
         }
     }
 }

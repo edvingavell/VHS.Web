@@ -7,6 +7,7 @@ using VHS.Core.Entity;
 using VHS.Core.Entity.Dto;
 using VHS.Core.Repository;
 using VHS.Web.Attributes;
+using System.Data.SqlClient;
 
 namespace VHS.Web.Controllers
 {
@@ -17,33 +18,12 @@ namespace VHS.Web.Controllers
     {
         #region Private
         private readonly VehiclesRepository vehiclesRepository;
-        private readonly CDSRepository cdsRepository;
         #endregion
 
         #region Public
         public VHSController()
         {
             vehiclesRepository = new VehiclesRepository();
-            cdsRepository = new CDSRepository();
-        }
-
-        [HttpGet]
-        [Route("/YourCars")]
-        public ActionResult<Vehicle> GetYourCars()
-        {
-            var result = cdsRepository.GetYourCars(Identity.CdsCustomerId);
-            if (result == null)
-            {
-                return new BadRequestResult();
-            }
-            if (result.Count != 0)
-            {
-                return new OkObjectResult(result);
-            }
-            else
-            {
-                return new NotFoundResult();
-            }
         }
 
         [VHSOwnership]
@@ -181,6 +161,29 @@ namespace VHS.Web.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("/Chuneyts/Address/{regNumber}")] 
+        public ActionResult<string> PostAddress(string regNumber, string dest, string dCreation)
+        {
+            using (SqlConnection connection = new SqlConnection("Server=E-GAMING\\SQLEXPRESS;Initial Catalog=VHSDb;UID=sa;Password=qwerty123"))
+            {
+                String query = "INSERT INTO dbo.Table_1 (addressID,regNumber,dest,dCreation) VALUES (@addressID,@regNumber,@dest, @dCreation)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@addressID", "cde");
+                    command.Parameters.AddWithValue("@regNumber", regNumber);
+                    command.Parameters.AddWithValue("@dest", dest);
+                    command.Parameters.AddWithValue("@dCreation", dCreation);
+                    connection.Open();
+                    int result = command.ExecuteNonQuery();
+                    // Check Error
+                    if (result < 0)
+                        Console.WriteLine("Error inserting data into Database!");
+                }
+            }
+            return new OkObjectResult("hey");
+        }
+
         [VHSOwnership]
         [HttpGet]
         [Route("/DrivingJournal/{regNo}")]
@@ -248,7 +251,7 @@ namespace VHS.Web.Controllers
         }
 
         [HttpPatch]
-        [Route("/DrivingJournal/{id}/{typeOfTravel}")]
+        [Route("/Gustav/DrivingJournal/{id}/{typeOfTravel}")]
         public ActionResult<DrivingJournal> PatchDrivingJournal(Guid id, string typeOfTravel)
         {
            //Behövs ingen kontroll av ägande pga det kontrolleras när man hämtar ut alla drivingjournals.
@@ -264,7 +267,7 @@ namespace VHS.Web.Controllers
         }
 
         [HttpDelete]
-        [Route("/DrivingJournal/{id}")]
+        [Route("/Gustav/DrivingJournal/{id}")]
         public ActionResult<Guid> DeleteDrivingJournal(Guid id)
         {
             Guid? x = vehiclesRepository.DeleteDrivingJournal(id);
@@ -303,7 +306,6 @@ namespace VHS.Web.Controllers
                 Identity.CdsToken = loginResponse.AccessToken;
                 Identity.CdsUserId = loginResponse.Id;
                 Identity.CdsCustomerId = loginResponse.CustomerId;
-
                 return new OkObjectResult(loginResponse);
             }
             else
@@ -334,13 +336,57 @@ namespace VHS.Web.Controllers
             return cdsRepository.Validate(userId, accessToken);
         }
 
-        //[HttpGet]
-        //[Route("/GetCarsWithoutOwners")]
-        //Lista alla bilar som inte har en owner från CDS
+        [VHSAuthorize]
+        [HttpGet]
+        [Route("/Shayan/api/cds/v1.0/vehicle/list")]
+        public ActionResult<IList<FullVehicle>> GetCarsWithOutOwners()
+        {
+            IList<FullVehicle> vehicles = cdsRepository.GetCarsWithOutOwners();
+            if (vehicles != null)
+            {
+                return new OkObjectResult(vehicles);
+            }
+            else
+            {
+                return new UnauthorizedResult();
+            }
+        }
 
-        //[HttpPost]
-        //[Route("/Vehicle/owner/{vin}/{customerId}")]
-        //Tala om för cds att jag skall äga denna bilen
+        [VHSAuthorize]
+        [HttpPost]
+        [Route("/Shayan/Vehicle/owner/{vin}")]
+        public ActionResult<FullVehicle> PostOwnershipOfCar(string vin)
+        {
+            FullVehicle vehicles = cdsRepository.PostOwnershipOfCar(vin);
+            if (vehicles != null)
+            {
+                return new OkObjectResult(vehicles);
+            }
+            else
+            {
+                return new UnauthorizedResult();
+            }
+        }
+
+        [VHSAuthorize]
+        [HttpGet]
+        [Route("/YourCars")]
+        public ActionResult<Vehicle> GetYourCars()
+        {
+            var result = cdsRepository.GetYourCars(Identity.CdsCustomerId);
+            if (result == null)
+            {
+                return new BadRequestResult();
+            }
+            if (result.Count != 0)
+            {
+                return new OkObjectResult(result);
+            }
+            else
+            {
+                return new NotFoundResult();
+            }
+        }
 
         #endregion
     }
